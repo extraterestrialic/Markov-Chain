@@ -1,5 +1,7 @@
 import random
 import re
+import argparse
+import doctest
 
 
 def read_text_from_file(file_path):
@@ -13,13 +15,30 @@ def read_text_from_file(file_path):
 
 
 def tokenize(text):
-    """Разбивает текст на слова и знаки препинания"""
+    """
+    Разбивает текст на слова и знаки препинания
+
+    >>> tokenize("Что-то там!")
+    ['Что', '-', 'то', 'там', '!']
+    >>> tokenize("Это цепь.")
+    ['Это', 'цепь', '.']
+    """
 
     return re.findall(r"\w+|[^\w\s]", text)
 
 
 def build_markov_chain(tokens, order):
-    """Собирает словарь цепей Маркова"""
+
+    """
+    Собирает словарь цепей Маркова
+
+    >>> chain, starts = build_markov_chain(['Это', 'доктест', 'Это', 'доктест'], 1)
+    >>> chain
+    {('Это',): ['доктест', 'доктест'], ('доктест',): ['Это']}
+    >>> starts
+    [('Это',), ('Это',)]
+    """
+
     chain = {}
     start_states = []
 
@@ -44,7 +63,16 @@ def build_markov_chain(tokens, order):
 
 
 def detokenize(tokens):
-    """Собирает текст из токенов"""
+
+    """
+    Собирает текст из токенов
+
+    >>> detokenize(['Что-то', 'там', '!'])
+    'Что-то там!'
+    >>> detokenize(['Это', 'текст', '.'])
+    'Это текст.'
+    """
+
     if not tokens:
         return ""
 
@@ -83,7 +111,16 @@ def detokenize(tokens):
 
 
 def generate_text(chain, start_states, order, target_words):
-    """Генерирует текст"""
+    """
+        Генерирует текст
+
+        >>> import random
+        >>> random.seed(42) # Фиксируем случайность для теста
+        >>> my_chain = {('Это',): ['доктест'], ('доктест',): ['!']}
+        >>> generate_text(my_chain, [('Это',)], 1, 2)
+        'Это доктест'
+    """
+
     if not chain or target_words <= 0:
         return ""
 
@@ -118,28 +155,30 @@ def main():
     print("      ГЕНЕРАТОР ТЕКСТА НА ЦЕПЯХ МАРКОВА          ")
     print("==================================================\n")
 
-    file_paths = []
-    print("Добавление файлов для обучения (.txt)")
-    print("Нажмите Enter, чтобы завершить добавление файлов\n")
+    # 1.парсер читает командную строку. nargs+ файлов может быть много
 
-    while True:
-        file_index = len(file_paths) + 1
-        prompt = f"Введите путь к файлу #{file_index} (или Enter для завершения): "
-        path_input = input(prompt).strip().strip('"').strip("'")
-        if not path_input:
-            if not file_paths:
-                print("Необходимо ввести путь хотя бы к одному файлу!")
-                continue
-            break
-        file_paths.append(path_input)
+    parser = argparse.ArgumentParser(description="Генератор текста на цепях Маркова")
+    parser.add_argument("files", nargs="+", help="Пути к файлам .txt")
+    parser.add_argument("--order", type=int, default=2, help="Порядок цепи")
+    parser.add_argument("--length", type=int, default=50, help="Количество слов")
+    parser.add_argument("--seed", type=int, default=None, help="Сид для генератора")
 
-    order_input = input("\nВведите порядок цепи (по умолчанию 2): ").strip()
-    order = int(order_input) if order_input.isdigit() and int(order_input) > 0 else 2
+    # nargs+ файлов может быть много
 
-    length_input = input("Введите желаемое количество слов(по умолчанию 50): ").strip()
-    target_words = (
-        int(length_input) if length_input.isdigit() and int(length_input) > 0 else 50
-    )
+    # считываем что ввел пользователь
+    args = parser.parse_args()
+
+    if args.seed is not None:
+        random.seed(args.seed)
+
+    # заменили кусок с вводом порядка,длины и файлов вместо громоздких циклов через args
+
+    file_paths = args.files
+    order = args.order
+    target_words = args.length
+
+
+    # заменили кусок с вводом порядка через args
 
     all_texts = []
     for file_path in file_paths:
@@ -172,4 +211,7 @@ def main():
 
 
 if __name__ == "__main__":
+
+    doctest.testmod()  # запускает все тесты в файле
+
     main()
